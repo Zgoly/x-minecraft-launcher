@@ -10,3 +10,9 @@ export interface ResourceWorker extends Pick<ResourceContext, 'hash' | 'parse' |
   copyPassively(files: { src: string; dest: string }[]): Promise<void>
   fingerprint(filePath: string): Promise<number>
 }
+
+export const kResourceDatabaseWorker: InjectionKey<ResourceDatabaseWorker> = Symbol('ResourceDatabaseWorker')
+
+export interface ResourceDatabaseWorker {
+
+}

@@ -1,6 +1,6 @@
 /* eslint-disable no-dupe-class-members */
 import { ExportResourceOptions, ResourceService as IResourceService, ImportResourceOptions, Pagination, PartialResourceHash, PromiseSignal, ResolveResourceOptions, Resource, ResourceDomain, ResourceMetadata, ResourceServiceKey, createPromiseSignal } from '@xmcl/runtime-api'
-import { FSWatcher, existsSync } from 'fs'
+import { FSWatcher } from 'fs'
 import { ensureDir, unlink } from 'fs-extra'
 import { basename, join } from 'path'
 import { Inject, LauncherApp, LauncherAppKey, PathResolver, kGameDataPath } from '~/app'
@@ -12,14 +12,13 @@ import { createResourceContext } from './core/createResourceContext'
 import { generateResource, getResourceAndMetadata } from './core/generateResource'
 import { getResourceEntry } from './core/getResourceEntry'
 import { loadResources } from './core/loadResources'
-import { migrateImageProtocolChange, migrateLevelDBData } from './core/migrateLegacy'
+import { migrateImageProtocolChange } from './core/migrateLegacy'
 import { migrate } from './core/migrateResources'
 import { parseMetadata } from './core/parseMetadata'
 import { resolveDomain } from './core/resolveDomain'
 import { tryPersistResource } from './core/tryPersistResource'
 import { upsertMetadata } from './core/upsertMetadata'
 import { watchResources } from './core/watchResources'
-import { SQLiteModule } from './sqlite'
 import { ResourceWorker, kResourceWorker } from './worker'
 
 const EMPTY_RESOURCE_SHA1 = 'da39a3ee5e6b4b0d3255bfef95601890afd80709'
@@ -86,13 +85,6 @@ export class ResourceService extends AbstractService implements IResourceService
       await migrate(this.context.db).catch((e) => {
         this.error(new Error('Fail to migrate the legacy resource', { cause: e }))
       })
-
-      const legacyPath = this.getAppDataPath('resources-v2')
-      if (existsSync(legacyPath)) {
-        await migrateLevelDBData(legacyPath, this.context, this).catch((e) => {
-          this.error(new Error('Fail to migrate the legacy leveldb', { cause: e }))
-        })
-      }
 
       await migrateImageProtocolChange(this.context)
 

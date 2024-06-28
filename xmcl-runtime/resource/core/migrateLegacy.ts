@@ -1,6 +1,5 @@
 import { ResourceDomain, ResourceMetadata, ResourceType } from '@xmcl/runtime-api'
 import { AbstractLevel, AbstractSublevel } from 'abstract-level'
-import { ClassicLevel } from 'classic-level'
 import { remove } from 'fs-extra'
 import { Logger } from '~/logger'
 import { sql } from 'kysely'
@@ -93,77 +92,4 @@ export async function migrateImageProtocolChange({ db, logger }: ResourceContext
     logger.warn('Fail to migrate image protocol change')
     logger.error(e as any)
   }
-}
-
-/**
- * Migrate the legacy level db data to the new sqlite database
- */
-export async function migrateLevelDBData(levelPath: string, current: ResourceContext, logger: Logger) {
-  const level = new ClassicLevel(levelPath)
-
-  const metadata = level.sublevel('metadata', { valueEncoding: 'json' }) as ResourceMetaDatabase
-
-  for await (const resource of metadata.values()) {
-    try {
-      const transformed: ResourceTable = {
-        forge: resource.forge,
-        fabric: resource.fabric,
-        liteloader: resource.liteloader,
-        quilt: resource.quilt,
-        curseforge: resource.curseforge,
-        modrinth: resource.modrinth,
-        modpack: resource.modpack,
-        save: resource.save,
-        resourcepack: resource.resourcepack,
-        shaderpack: resource.shaderpack,
-        instance: resource.instance,
-        github: resource.github,
-        gitlab: resource.gitlab,
-        [ResourceType.CurseforgeModpack]: resource[ResourceType.CurseforgeModpack],
-        [ResourceType.McbbsModpack]: resource[ResourceType.McbbsModpack],
-        [ResourceType.ModrinthModpack]: resource[ResourceType.ModrinthModpack],
-        name: resource.name,
-        sha1: resource.hashes.sha1,
-        sha256: resource.hashes.sha256,
-      }
-
-      const clean = Object.entries(transformed).reduce((acc, [key, value]) => {
-        if (value === undefined) return acc
-        return { ...acc, [key]: value }
-      }, {} as ResourceTable)
-
-      await current.db.insertInto('resources')
-        .values(clean)
-        .onConflict((oc) => oc.column('sha1').doUpdateSet(clean))
-        .execute()
-      await current.db.insertInto('uris')
-        .values(resource.uris.map((uri) => ({ sha1: resource.hashes.sha1, uri })))
-        .onConflict((r) => r.doNothing())
-        .execute()
-      await current.db.insertInto('tags')
-        .values(resource.tags.map((tag) => ({ sha1: resource.hashes.sha1, tag })))
-        .onConflict((r) => r.doNothing())
-        .execute()
-      await current.db.insertInto('icons')
-        .values(resource.icons.map((icon) => ({ sha1: resource.hashes.sha1, icon })))
-        .onConflict((r) => r.doNothing())
-        .execute()
-    } catch (e) {
-      logger.warn(`Fail to migrate resource ${resource.name}`)
-      logger.warn(e)
-    }
-  }
-
-  const snapshot = level.sublevel('snapshot', { valueEncoding: 'json' }) as ResourceSnapshotDatabase
-  await Promise.all([
-    migrateDomain(snapshot, current, ResourceDomain.Mods),
-    migrateDomain(snapshot, current, ResourceDomain.Saves),
-    migrateDomain(snapshot, current, ResourceDomain.ResourcePacks),
-    migrateDomain(snapshot, current, ResourceDomain.ShaderPacks),
-    migrateDomain(snapshot, current, ResourceDomain.Modpacks),
-    migrateDomain(snapshot, current, ResourceDomain.Unclassified),
-  ])
-
-  await level.close().catch(() => undefined)
-  await remove(levelPath)
 }
