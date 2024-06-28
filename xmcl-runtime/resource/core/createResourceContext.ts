@@ -5,6 +5,9 @@ import { Logger } from '~/logger'
 import { SQLiteModule } from '../sqlite'
 import { ResourceContext } from './ResourceContext'
 import { Database } from './schema'
+import SQLite from 'node-sqlite3-wasm'
+import { SqliteWASMDialect } from './SqliteWASMDialect'
+import { join } from 'path'
 
 class JSONPlugin implements KyselyPlugin {
   #tranformer = new JSONTransformer()
@@ -39,9 +42,10 @@ class JSONTransformer extends OperationNodeTransformer {
   }
 }
 
-export function createResourceContext(imageStore: ImageStorage, eventBus: EventEmitter, logger: Logger, delegates: Pick<ResourceContext, 'hash' | 'parse' | 'hashAndFileType'>) {
-  const dialect = new SqliteDialect({
-    database: () => SQLiteModule.getInstance(),
+export function createResourceContext(appDataPath: string, imageStore: ImageStorage, eventBus: EventEmitter, logger: Logger, delegates: Pick<ResourceContext, 'hash' | 'parse' | 'hashAndFileType'>) {
+  const rawDb = new SQLite.Database(join(appDataPath, 'resources.sqlite'))
+  const dialect = new SqliteWASMDialect({
+    database: rawDb,
   })
 
   // Database interface is passed to Kysely's constructor, and from now on, Kysely
@@ -60,7 +64,7 @@ export function createResourceContext(imageStore: ImageStorage, eventBus: EventE
 
   const context: ResourceContext = {
     db,
-    getSqlite: SQLiteModule.getInstance,
+    getSqlite: () => Promise.resolve(rawDb),
     image: imageStore,
     hash: delegates.hash,
     hashAndFileType: delegates.hashAndFileType,

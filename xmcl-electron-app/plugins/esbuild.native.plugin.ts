@@ -38,6 +38,22 @@ export default function createNativeModulePlugin(nodeModules: string): Plugin {
         },
       )
 
+      build.onLoad(
+        { filter: /^.+node-sqlite3-wasm[\\/]dist[\\/]node-sqlite3-wasm\.js$/g },
+        async ({ path }) => {
+          let content = (await readFile(path, 'utf-8'))
+          content = content.replace('get isFinalized(){return this._ptr===null}',
+            'get isFinalized(){return this._ptr===null}' +
+            'isReader(){return sqlite3.column_count(this._ptr)>=1}',
+          )
+          content = content.replace('"node-sqlite3-wasm.wasm"', 'require("./node-sqlite3-wasm.wasm")')
+          return {
+            contents: content,
+            loader: 'js',
+          }
+        },
+      )
+
       // Intercept node_modules\node-datachannel\polyfill\RTCPeerConnection.js
       build.onLoad(
         { filter: /^.+node-datachannel[\\/]polyfill[\\/]RTCPeerConnection\.js$/g },
@@ -51,8 +67,8 @@ export default function createNativeModulePlugin(nodeModules: string): Plugin {
           content = content.replace(/import NodeDataChannel from '..\/lib\/index.js';/g, '')
 
           content = content.replace('const [protocol, rest] = url.split(/:(.*)/);',
-              "const [protocol, hostname, port] = url.split(':');" +
-              'return { hostname, port, username: server.username, password: server.credential };\n',
+            "const [protocol, hostname, port] = url.split(':');" +
+            'return { hostname, port, username: server.username, password: server.credential };\n',
           )
 
           return {

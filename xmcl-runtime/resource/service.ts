@@ -108,8 +108,7 @@ export class ResourceService extends AbstractService implements IResourceService
       })
     })
 
-    SQLiteModule.init(this.getAppDataPath())
-    this.context = createResourceContext(imageStore, this, this, worker)
+    this.context = createResourceContext(this.getAppDataPath(), imageStore, this, this, worker)
 
     app.registryDisposer(async () => {
       for (const watcher of Object.values(this.watchers)) {
@@ -121,7 +120,7 @@ export class ResourceService extends AbstractService implements IResourceService
 
   async isResourceDatabaseOpened() {
     const db = await this.context.getSqlite()
-    return db.open
+    return db.isOpen
   }
 
   async getResourceMetadataByUri(uri: string): Promise<ResourceMetadata[]> {
