@@ -1,12 +1,12 @@
 import EventEmitter from 'events'
-import { Kysely, KyselyPlugin, OperationNodeTransformer, ParseJSONResultsPlugin, PluginTransformQueryArgs, PluginTransformResultArgs, PrimitiveValueListNode, QueryResult, RootOperationNode, SqliteDialect, UnknownRow, ValueNode } from 'kysely'
+import { Kysely, KyselyPlugin, OperationNodeTransformer, ParseJSONResultsPlugin, PluginTransformQueryArgs, PluginTransformResultArgs, PrimitiveValueListNode, QueryResult, RootOperationNode, UnknownRow, ValueNode } from 'kysely'
+import SQLite from 'node-sqlite3-wasm'
+import { join } from 'path'
 import { ImageStorage } from '~/imageStore'
 import { Logger } from '~/logger'
+import { SqliteWASMDialect } from '~/sql'
 import { ResourceContext } from './ResourceContext'
 import { Database } from './schema'
-import SQLite from 'node-sqlite3-wasm'
-import { SqliteWASMDialect } from './SqliteWASMDialect'
-import { join } from 'path'
 
 class JSONPlugin implements KyselyPlugin {
   #tranformer = new JSONTransformer()

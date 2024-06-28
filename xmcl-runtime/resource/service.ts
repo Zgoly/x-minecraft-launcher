@@ -302,7 +302,9 @@ export class ResourceService extends AbstractService implements IResourceService
         if (resolved.storedPath) {
           return resolved
         }
-
+        if (!resolved.fileType && resolved.path.endsWith('.txt')) {
+          return resolved
+        }
         if (resolved.domain === ResourceDomain.Unclassified) {
           resolved.domain = resolveDomain(resolved.metadata)
         }
